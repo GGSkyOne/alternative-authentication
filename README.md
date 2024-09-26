@@ -18,13 +18,13 @@ Keep in mind that this is only a server-side mod! And if you want to use third-p
 
 ## Joining the server
 
-When a player connects to a server, authentication first occurs on Mojang servers, if the player cannot be authenticated there, then a check is made on [Ely.by](https://docs.ely.by/en/api.html) or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in [Ely.by](https://docs.ely.by/en/api.html), and then in Mojang. If the player has not passed the check on any server, then the player is not allowed to the server. His username could not be verified.
+When a player connects to a server, authentication first occurs on Mojang servers, if the player cannot be authenticated there, then a check is made on <span>Ely.by</span> or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in <span>Ely.by</span>, and then in Mojang. If the player has not passed the check on any server, then the player is not allowed to the server. His username could not be verified.
 
 ## Whitelist
 
 You can use the whitelist with this mod, it implements support for third-party authentication servers for adding to the whitelist.
 
-When you add a player to the whitelist, the check first occurs on Mojang servers, if the player was not found, then the check is hapenning on [Ely.by](https://docs.ely.by/en/api.html) or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in [Ely.by](https://docs.ely.by/en/api.html), and then in Mojang. If the player was not found on any of the servers, then he cannot be added to the whitelist.
+When you add a player to the whitelist, the check first occurs on Mojang servers, if the player was not found, then the check is hapenning on <span>Ely.by</span> or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in <span>Ely.by</span>, and then in Mojang. If the player was not found on any of the servers, then he cannot be added to the whitelist.
 
 ### What if the player's nickname is taken in another authentication server, and it is not him?
 
@@ -82,14 +82,14 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 Answers to some questions.
 
--   Q: Backport?
+#### Q: Backport?
 
-    A: Maybe.
+A: Maybe.
 
--   Q: Update?
+#### Q: Update?
 
-    A: I will try to support the mod on the latest versions of the game, it may take some time.
+A: I will try to support the mod on the latest versions of the game, it may take some time.
 
--   Q: I have issue with the mod, the mod doesn't work correctly, etc.
+#### Q: I have issue with the mod, the mod doesn't work correctly, etc.
 
-    A: [Open an issue](https://github.com/GGSkyOne/alternative-authentication/issues)
+A: [Open an issue](https://github.com/GGSkyOne/alternative-authentication/issues)
