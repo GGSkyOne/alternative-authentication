@@ -10,11 +10,17 @@ Keep in mind that this is only a server-side mod! And if you want to use third-p
 
 ## Features
 
--   Convenient configuration of authentication servers.
--   Support for third-party authentication servers when joining the server.
--   Support for fetching additional properties for the player when joining server. Example of use: set the textures (skin and cape) for the player server-side so client can see player's texture without any mods.
--   Support for adding custom properties to the player when joining server.
--   Add or remove from the whitelist using third-party authentication servers.
+-   ⚙️ Convenient configuration of authentication servers.
+
+-   🔐 Support for third-party authentication servers when joining the server.
+
+-   👕 Support for setting player textures via third-party skin server when joining the server. (Using additonal properties feature)
+
+-   🌐 Support for fetching additional properties for the player when joining server. Example of use: set the textures (skin and cape) for the player server-side so client can see player's texture without any mods.
+
+-   🛠️ Support for adding custom properties to the player when joining server.
+
+-   📝 Support for adding players the whitelist via third-party authentication servers.
 
 ## Joining the server
 
@@ -48,7 +54,7 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 -   `profiles_url`. URL for checking the player when adding or removing from the whitelist. Note that here must be used a URL for checking multiple usernames in an array, not just one username.
 
--   `property_url`. Not required. Additional URL for fetching custom properties (like skin and cape), if needed, for the player when joining server. You can use `{0}` to put player username in the request, or `{1}` to put player UUID.
+-   `property_url`. Not required. Additional URL for fetching custom properties (like skin and cape), if needed, for the player when joining server. You can use `{0}` to put player username in the request, and `{1}` to put player UUID.
 
 -   `custom_properties`. Not required. Array of custom properties that will be applied to the player when player joins the server with this authentication provider.
 
@@ -78,18 +84,22 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 ```
 
-### FAQ
+## FAQ
 
 Answers to some questions.
 
-#### Q: Backport?
+### Q: Forge/NeoForge?
 
-A: Maybe.
+A: No.
 
-#### Q: Update?
+### Q: Backport?
 
-A: I will try to support the mod on the latest versions of the game, it may take some time.
+A: When I have time maybe.
 
-#### Q: I have issue with the mod, the mod doesn't work correctly, etc.
+### Q: Update?
 
-A: [Open an issue](https://github.com/GGSkyOne/alternative-authentication/issues)
+A: I will try to support the mod on the latest versions of the game, it may take some time. I’m not sure yet whether I will support snapshots, but releases definitely.
+
+### Q: I have issue with the mod, suggestion or feature request, the mod doesn't work correctly, etc.
+
+A: [Feel free to open an issue!](https://github.com/GGSkyOne/alternative-authentication/issues)
