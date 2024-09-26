@@ -26,7 +26,7 @@ You can use the whitelist with this mod, it implements support for third-party a
 
 When you add a player to the whitelist, the check first occurs on Mojang servers, if the player was not found, then the check is hapenning on <span>Ely.by</span> or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in <span>Ely.by</span>, and then in Mojang. If the player was not found on any of the servers, then he cannot be added to the whitelist.
 
-### What if the player's nickname is taken in another authentication server, and it is not him?
+### What if there are two people with the same username on multiple authentication servers?
 
 Well, in this case, you can temporarily change the order of authentication servers or add the player to the whitelist yourself.
 
