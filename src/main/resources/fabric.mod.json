@@ -1,0 +1,26 @@
+{
+    "schemaVersion": 1,
+    "id": "alternative-auth",
+    "version": "${version}",
+    "name": "Alternative Authentication",
+    "description": "Use third-party authentication servers, like Ely.by, on your server without interfering with Mojang authentication",
+    "authors": ["GGSkyOne"],
+    "contact": {
+        "homepage": "https://modrinth.com/mod/alternative-authentication",
+        "sources": "https://github.com/GGSkyOne/alternative-authentication",
+        "issues": "https://github.com/GGSkyOne/alternative-authentication/issues"
+    },
+    "license": "MIT",
+    "icon": "assets/alternative-auth/icon.png",
+    "environment": "server",
+    "entrypoints": {
+        "server": ["one.ggsky.alternativeauth.AlternativeAuthentication"]
+    },
+    "mixins": ["alternative-auth.mixins.json"],
+    "depends": {
+        "fabricloader": ">=0.16.0",
+        "minecraft": "~1.21",
+        "java": ">=21",
+        "fabric-api": "*"
+    }
+}
