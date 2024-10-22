@@ -11,15 +11,14 @@
         "issues": "https://github.com/GGSkyOne/alternative-authentication/issues"
     },
     "license": "MIT",
-    "icon": "assets/alternative-auth/icon.png",
     "environment": "server",
     "entrypoints": {
         "server": ["one.ggsky.alternativeauth.AlternativeAuthentication"]
     },
     "mixins": ["alternative-auth.mixins.json"],
     "depends": {
-        "fabricloader": ">=0.16.0",
-        "minecraft": "~1.21",
+        "fabricloader": ">=0.16.7",
+        "minecraft": "~1.21.2",
         "java": ">=21",
         "fabric-api": "*"
     }
