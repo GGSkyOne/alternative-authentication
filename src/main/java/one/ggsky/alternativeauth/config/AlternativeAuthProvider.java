@@ -17,7 +17,7 @@ public class AlternativeAuthProvider {
         return check_url;
     }
 
-    @SerializedName("check_url")
+    @SerializedName("profiles_url")
     public String getProfilesUrl() {
         return profiles_url;
     }

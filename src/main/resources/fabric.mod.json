@@ -18,8 +18,7 @@
     "mixins": ["alternative-auth.mixins.json"],
     "depends": {
         "fabricloader": ">=0.15.11",
-        "minecraft": [">=1.20.2", "<=1.22"],
-        "java": ">=17",
-        "fabric-api": "*"
+        "minecraft": [">=1.14", "<1.16"],
+        "java": ">=8"
     }
 }
