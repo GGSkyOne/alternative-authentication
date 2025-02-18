@@ -1,15 +1,12 @@
 package one.ggsky.alternativeauth.mixin;
 
+import com.mojang.authlib.AuthenticationService;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
+import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
-import com.mojang.authlib.exceptions.MinecraftClientException;
-import com.mojang.authlib.minecraft.client.MinecraftClient;
-import com.mojang.authlib.yggdrasil.ProfileActionType;
-import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
-import com.mojang.authlib.yggdrasil.response.ProfileAction;
 
 import one.ggsky.alternativeauth.config.AlternativeAuthConfig;
 import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
@@ -18,30 +15,30 @@ import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.InetAddress;
-import java.net.Proxy;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Mixin(YggdrasilMinecraftSessionService.class)
-public class CheckAuthenticationMixin {
+public abstract class CheckAuthenticationMixin {
+    @Shadow public abstract AuthenticationService getAuthenticationService();
+
     AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
     AlternativeAuthConfig CONFIG = AlternativeAuthConfigManager.getConfig();
 
     @Inject(at = @At("HEAD"), method = "hasJoinedServer", remap = false, cancellable = true)
-    public void CheckAuthentication(String profileName, String serverId, InetAddress address, CallbackInfoReturnable<ProfileResult> cir) throws AuthenticationUnavailableException {
-        final MinecraftClient client = MinecraftClient.unauthenticated(Proxy.NO_PROXY);
-        
-        Map<String, Object> arguments = new HashMap<>();
+    public void CheckAuthentication(final GameProfile user, String serverId, InetAddress address, CallbackInfoReturnable<GameProfile> cir) throws AuthenticationUnavailableException {
+        AuthenticationServiceAccessor authenticationService = ((AuthenticationServiceAccessor) getAuthenticationService());
 
-        arguments.put("username", profileName);
+        final Map<String, Object> arguments = new HashMap<>();
+
+        arguments.put("username", user.getName());
         arguments.put("serverId", serverId);
 
         if (address != null) {
@@ -55,32 +52,26 @@ public class CheckAuthenticationMixin {
             final URL url = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(provider.getCheckUrl()), HttpAuthenticationService.buildQuery(arguments));
             
             try {
-                final HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
+                final HasJoinedMinecraftServerResponse response = authenticationService.callMakeRequest(url, null, HasJoinedMinecraftServerResponse.class, null);
 
-                if (response != null && response.id() != null) {
+                if (response != null && response.getId() != null) {
                     LOGGER.debug("Response is not null");
-                    final GameProfile result = new GameProfile(response.id(), profileName);
+                    final GameProfile result = new GameProfile(response.getId(), user.getName());
 
-                    if (response.properties() != null) {
+                    if (response.getProperties() != null) {
                         LOGGER.debug("Properties is not null");
-                        result.getProperties().putAll(response.properties());
+                        result.getProperties().putAll(response.getProperties());
                     }
 
-                    final Set<ProfileActionType> profileActions = response.profileActions().stream()
-                        .map(ProfileAction::type)
-                        .collect(Collectors.toSet());
-
                     LOGGER.info("Authenticating player via " + provider.name());
-                    cir.setReturnValue(new ProfileResult(result, profileActions));
+                    cir.setReturnValue(result);
                     break;
                 } else {
                     cir.setReturnValue(null);
                 }
-            } catch (final MinecraftClientException exception) {
-                if (exception.toAuthenticationException() instanceof final AuthenticationUnavailableException unavailable) {
-                    throw unavailable;
-                }
-
+            } catch (final AuthenticationUnavailableException exception) {
+                throw exception;
+            } catch (final AuthenticationException ignored) {
                 cir.setReturnValue(null);
             }
         }

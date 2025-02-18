@@ -8,6 +8,9 @@ Requires `online-mode=true` in the server configuration for correct operation. A
 
 Keep in mind that this is only a server-side mod! And if you want to use third-party authentication on the client, you need to use a supported launcher or authlib-injector.
 
+> [!NOTE]
+> You are on the 1.16 - 1.20.1 branch. Check [main branch](https://github.com/GGSkyOne/alternative-authentication/tree/main) for 1.20.2+ development tree.
+
 ## Features
 
 -   ⚙️ Convenient configuration of authentication servers.
