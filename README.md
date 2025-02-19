@@ -16,6 +16,8 @@ Keep in mind that this is only a server-side mod! And if you want to use third-p
 
 -   👕 Support for setting player textures via third-party skin server when joining the server.
 
+-   🌐 Support for fetching additional properties for the player when joining server. Example of use: set the textures (skin and cape) for the player server-side so client can see player's texture without any mods.
+
 -   📝 Support for adding players the whitelist via third-party authentication servers.
 
 ## Joining the server
@@ -50,6 +52,8 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 -   `profiles_url`. URL for checking the player when adding or removing from the whitelist. Note that here must be used a URL for checking multiple usernames in an array, not just one username.
 
+-   `property_url`. Not required. Additional URL for fetching custom properties (like skin and cape), if needed, for the player when joining server. You can use `{0}` to put player username in the request, and `{1}` to put player UUID.
+
 ```
 {
     "debug": false,
@@ -62,7 +66,8 @@ Your authentication providers, or authentication servers. You can remove, add, o
         {
             "name": "Ely.by",
             "check_url": "https://authserver.ely.by/session/hasJoined",
-            "profiles_url": "https://authserver.ely.by/api/profiles/minecraft"
+            "profiles_url": "https://authserver.ely.by/api/profiles/minecraft",
+            "property_url": "http://skinsystem.ely.by/textures/signed/{0}"
         }
     ]
 }

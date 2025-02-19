@@ -9,7 +9,8 @@
         {
             "name": "Ely.by",
             "check_url": "https://authserver.ely.by/session/hasJoined",
-            "profiles_url": "https://authserver.ely.by/api/profiles/minecraft"
+            "profiles_url": "https://authserver.ely.by/api/profiles/minecraft",
+            "property_url": "http://skinsystem.ely.by/textures/signed/{0}"
         }
     ]
 }

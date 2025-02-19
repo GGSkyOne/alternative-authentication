@@ -5,6 +5,7 @@ import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.ProfileActionType;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
@@ -25,6 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.net.InetAddress;
 import java.net.Proxy;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -62,8 +64,27 @@ public class CheckAuthenticationMixin {
                     final GameProfile result = new GameProfile(response.id(), profileName);
 
                     if (response.properties() != null) {
+                        PropertyMap properties;
                         LOGGER.debug("Properties is not null");
-                        result.getProperties().putAll(response.properties());
+
+                        if (provider.getPropertyUrl() != null) {
+                            LOGGER.debug(MessageFormat.format("Found {0} property URL, fetching {1}", provider.name(), MessageFormat.format(provider.getPropertyUrl(), profileName, response.id())));
+
+                            final URL propertyUrl = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(MessageFormat.format(provider.getPropertyUrl(), profileName, response.id())), null);
+                            final HasJoinedMinecraftServerResponse propertyResponse = client.get(propertyUrl, HasJoinedMinecraftServerResponse.class);
+
+                            if (propertyResponse != null) {
+                                LOGGER.debug("Properties is not null");
+                                properties = propertyResponse.properties();
+                            } else {
+                                LOGGER.debug("Property response is null, falling back to initial properties");
+                                properties = response.properties();
+                            }
+                        } else {
+                            properties = response.properties();
+                        }
+
+                        result.getProperties().putAll(properties);
                     }
 
                     final Set<ProfileActionType> profileActions = response.profileActions().stream()
