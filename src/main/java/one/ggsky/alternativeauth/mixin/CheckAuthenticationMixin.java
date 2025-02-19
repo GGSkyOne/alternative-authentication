@@ -5,6 +5,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationException;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
+import com.mojang.authlib.properties.PropertyMap;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
 
@@ -22,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.InetAddress;
 import java.net.URL;
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -59,8 +61,27 @@ public abstract class CheckAuthenticationMixin {
                     final GameProfile result = new GameProfile(response.getId(), user.getName());
 
                     if (response.getProperties() != null) {
+                        PropertyMap properties;
                         LOGGER.debug("Properties is not null");
-                        result.getProperties().putAll(response.getProperties());
+
+                        if (provider.getPropertyUrl() != null) {
+                            LOGGER.debug(MessageFormat.format("Found {0} property URL, fetching {1}", provider.name(), MessageFormat.format(provider.getPropertyUrl(), user.getName(), response.getId())));
+
+                            final URL propertyUrl = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(MessageFormat.format(provider.getPropertyUrl(), user.getName(), response.getId())), null);
+                            final HasJoinedMinecraftServerResponse propertyResponse = authenticationService.callMakeRequest(propertyUrl, null, HasJoinedMinecraftServerResponse.class);
+
+                            if (propertyResponse != null) {
+                                LOGGER.debug("Properties is not null");
+                                properties = propertyResponse.getProperties();
+                            } else {
+                                LOGGER.debug("Property response is null, falling back to initial properties");
+                                properties = response.getProperties();
+                            }
+                        } else {
+                            properties = response.getProperties();
+                        }
+
+                        result.getProperties().putAll(properties);
                     }
 
                     LOGGER.info("Authenticating player via " + provider.name());

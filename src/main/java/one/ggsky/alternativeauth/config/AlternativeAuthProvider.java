@@ -6,6 +6,7 @@ public class AlternativeAuthProvider {
     private String name;
     private String check_url;
     private String profiles_url;
+    private String property_url;
 
     @SerializedName("name")
     public String name() {
@@ -20,5 +21,10 @@ public class AlternativeAuthProvider {
     @SerializedName("profiles_url")
     public String getProfilesUrl() {
         return profiles_url;
+    }
+
+    @SerializedName("property_url")
+    public String getPropertyUrl() {
+        return property_url;
     }
 }
