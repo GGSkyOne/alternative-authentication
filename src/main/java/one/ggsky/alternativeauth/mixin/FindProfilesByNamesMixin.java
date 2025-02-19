@@ -41,7 +41,7 @@ public class FindProfilesByNamesMixin {
     @Inject(at = @At("HEAD"), method = "findProfilesByNames", remap = false, cancellable = true)
     public void findProfilesByNames(String[] names, ProfileLookupCallback callback, CallbackInfo ci) {
         final MinecraftClient client = MinecraftClient.unauthenticated(Proxy.NO_PROXY);
-        
+
         final Set<String> criteria = Arrays.stream(names)
             .filter(name -> !Strings.isNullOrEmpty(name))
             .collect(Collectors.toSet());
@@ -78,7 +78,7 @@ public class FindProfilesByNamesMixin {
                     LOGGER.debug(MessageFormat.format("Page {0} returned {1} results, parsing", page, profiles.size()));
 
                     final Set<String> received = new HashSet<>(profiles.size());
-                    
+
                     for (final GameProfile profile : profiles) {
                         LOGGER.debug(MessageFormat.format("Successfully looked up profile {0}", profile));
                         received.add(normalizeName(profile.getName()));
@@ -89,7 +89,7 @@ public class FindProfilesByNamesMixin {
                         if (received.contains(normalizeName(name))) {
                             continue;
                         }
-                        
+
                         LOGGER.debug(MessageFormat.format("Could not find profile {0}", name));
                         callback.onProfileLookupFailed(name, new ProfileNotFoundException("Server did not find the requested profile"));
                     }
