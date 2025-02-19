@@ -11,5 +11,5 @@ public class AlternativeAuthLoggerManager {
 
     public static AlternativeAuthLogger getLogger() {
         return logger;
-    } 
+    }
 }

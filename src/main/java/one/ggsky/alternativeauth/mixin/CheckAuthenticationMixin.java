@@ -40,7 +40,7 @@ public class CheckAuthenticationMixin {
     @Inject(at = @At("HEAD"), method = "hasJoinedServer", remap = false, cancellable = true)
     public void CheckAuthentication(String profileName, String serverId, InetAddress address, CallbackInfoReturnable<ProfileResult> cir) throws AuthenticationUnavailableException {
         final MinecraftClient client = MinecraftClient.unauthenticated(Proxy.NO_PROXY);
-        
+
         Map<String, Object> arguments = new HashMap<>();
 
         arguments.put("username", profileName);
@@ -55,7 +55,7 @@ public class CheckAuthenticationMixin {
             LOGGER.debug("Using " + provider.getCheckUrl());
 
             final URL url = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(provider.getCheckUrl()), HttpAuthenticationService.buildQuery(arguments));
-            
+
             try {
                 final HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
 

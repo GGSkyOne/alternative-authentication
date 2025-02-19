@@ -40,7 +40,7 @@ public class AlternativeAuthConfigManager {
             configurationFile.getParentFile().mkdirs();
             InputStream stream = AlternativeAuthentication.class.getClassLoader().getResourceAsStream("alternative-auth.json");
 
-            if (stream != null) { 
+            if (stream != null) {
                 String content;
 
                 try (Scanner scanner = new Scanner(stream).useDelimiter("\\A")) {
@@ -48,11 +48,11 @@ public class AlternativeAuthConfigManager {
                 }
 
                 stream.close();
-                
+
                 config = gson.fromJson(content, AlternativeAuthConfig.class);
 
                 try (PrintWriter writer = new PrintWriter(configurationFile)) {
-                    writer.println(content);
+                    writer.print(content);
                 }
             }
         } catch (IOException exception) {

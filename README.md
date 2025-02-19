@@ -71,7 +71,6 @@ Your authentication providers, or authentication servers. You can remove, add, o
         }
     ]
 }
-
 ```
 
 ## FAQ
