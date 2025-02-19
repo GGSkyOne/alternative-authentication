@@ -52,7 +52,7 @@ public class AlternativeAuthConfigManager {
                 config = gson.fromJson(content, AlternativeAuthConfig.class);
 
                 try (PrintWriter writer = new PrintWriter(configurationFile)) {
-                    writer.println(content);
+                    writer.print(content);
                 }
             }
         } catch (IOException exception) {
