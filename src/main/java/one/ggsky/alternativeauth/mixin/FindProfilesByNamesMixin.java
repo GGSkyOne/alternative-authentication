@@ -17,12 +17,14 @@ import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.net.Proxy;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
@@ -30,18 +32,31 @@ import java.util.stream.Collectors;
 
 @Mixin(YggdrasilGameProfileRepository.class)
 public class FindProfilesByNamesMixin {
-    AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
-    AlternativeAuthConfig CONFIG = AlternativeAuthConfigManager.getConfig();
+    @Unique
+    private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
 
+    @Unique
+    private static final AlternativeAuthConfig CONFIG = AlternativeAuthConfigManager.getConfig();
+
+    @Shadow @Final
+    private MinecraftClient client;
+
+    @Unique
     private static final int ENTRIES_PER_PAGE = 2;
+    @Unique
     private static final int MAX_FAIL_COUNT = 3;
+    @Unique
     private static final int DELAY_BETWEEN_PAGES = 100;
+    @Unique
     private static final int DELAY_BETWEEN_FAILURES = 750;
 
-    @Inject(at = @At("HEAD"), method = "findProfilesByNames", remap = false, cancellable = true)
+    @Inject(
+        at = @At("HEAD"),
+        method = "findProfilesByNames",
+        remap = false,
+        cancellable = true
+    )
     public void findProfilesByNames(String[] names, ProfileLookupCallback callback, CallbackInfo ci) {
-        final MinecraftClient client = MinecraftClient.unauthenticated(Proxy.NO_PROXY);
-        
         final Set<String> criteria = Arrays.stream(names)
             .filter(name -> !Strings.isNullOrEmpty(name))
             .collect(Collectors.toSet());
@@ -78,7 +93,7 @@ public class FindProfilesByNamesMixin {
                     LOGGER.debug(MessageFormat.format("Page {0} returned {1} results, parsing", page, profiles.size()));
 
                     final Set<String> received = new HashSet<>(profiles.size());
-                    
+
                     for (final GameProfile profile : profiles) {
                         LOGGER.debug(MessageFormat.format("Successfully looked up profile {0}", profile));
                         received.add(normalizeName(profile.getName()));
@@ -89,7 +104,7 @@ public class FindProfilesByNamesMixin {
                         if (received.contains(normalizeName(name))) {
                             continue;
                         }
-                        
+
                         LOGGER.debug(MessageFormat.format("Could not find profile {0}", name));
                         callback.onProfileLookupFailed(name, new ProfileNotFoundException("Server did not find the requested profile"));
                     }
@@ -111,6 +126,7 @@ public class FindProfilesByNamesMixin {
                             Thread.sleep(DELAY_BETWEEN_FAILURES);
                         } catch (final InterruptedException ignored) {
                         }
+
                         failed = true;
                     }
                 }
@@ -120,6 +136,7 @@ public class FindProfilesByNamesMixin {
         ci.cancel();
     }
 
+    @Unique
     private static String normalizeName(final String name) {
         return name.toLowerCase(Locale.ROOT);
     }

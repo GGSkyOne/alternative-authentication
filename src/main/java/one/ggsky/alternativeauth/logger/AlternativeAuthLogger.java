@@ -11,7 +11,7 @@ public class AlternativeAuthLogger {
         this.debugMode = debugMode;
 
         if (debugMode) {
-            logger.warn("Debugger for Alternative Authentication enabled");
+            logger.info("Debug mode enabled for Alternative Authentication");
         }
     }
 
@@ -19,9 +19,13 @@ public class AlternativeAuthLogger {
         logger.info(message);
     }
 
+    public void warn(String message) {
+        logger.warn(message);
+    }
+
     public void debug(String message) {
         if (debugMode) {
-            logger.info("[AA-Debug] " + message);
+            logger.info(message);
         }
     }
 }

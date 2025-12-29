@@ -1,19 +1,15 @@
 package one.ggsky.alternativeauth.config;
 
-import com.google.gson.annotations.SerializedName;
-
 import java.util.List;
 
 public class AlternativeAuthConfig {
-    private Boolean debug;
-    private List<AlternativeAuthProvider> providers;
+    private Boolean debug = false;
+    private List<AlternativeAuthProvider> providers = List.of();
 
-    @SerializedName("debug")
-    public Boolean isDebuggerEnabled() {
+    public Boolean isDebugModeEnabled() {
         return debug;
     }
 
-    @SerializedName("providers")
     public List<AlternativeAuthProvider> getProviders() {
         return providers;
     }
