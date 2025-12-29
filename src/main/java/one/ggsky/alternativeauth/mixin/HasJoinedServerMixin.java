@@ -18,13 +18,15 @@ import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
 
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.InetAddress;
-import java.net.Proxy;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -33,14 +35,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Mixin(YggdrasilMinecraftSessionService.class)
-public class CheckAuthenticationMixin {
-    AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
-    AlternativeAuthConfig CONFIG = AlternativeAuthConfigManager.getConfig();
+public class HasJoinedServerMixin {
+    @Unique
+    private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
 
-    @Inject(at = @At("HEAD"), method = "hasJoinedServer", remap = false, cancellable = true)
-    public void CheckAuthentication(String profileName, String serverId, InetAddress address, CallbackInfoReturnable<ProfileResult> cir) throws AuthenticationUnavailableException {
-        final MinecraftClient client = MinecraftClient.unauthenticated(Proxy.NO_PROXY);
-        
+    @Unique
+    private static final AlternativeAuthConfig CONFIG = AlternativeAuthConfigManager.getConfig();
+
+    @Shadow @Final
+    private MinecraftClient client;
+
+    @Inject(
+        at = @At("HEAD"),
+        method = "hasJoinedServer",
+        remap = false,
+        cancellable = true
+    )
+    public void hasJoinedServer(String profileName, String serverId, InetAddress address, CallbackInfoReturnable<ProfileResult> cir) throws AuthenticationUnavailableException {
         Map<String, Object> arguments = new HashMap<>();
 
         arguments.put("username", profileName);
@@ -84,7 +95,9 @@ public class CheckAuthenticationMixin {
                             properties = response.properties();
                         }
 
-                        result.getProperties().putAll(properties);
+                        if (properties != null) {
+                            result.getProperties().putAll(properties);
+                        }
                     }
 
                     final Set<ProfileActionType> profileActions = response.profileActions().stream()

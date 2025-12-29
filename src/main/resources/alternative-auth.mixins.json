@@ -1,8 +1,9 @@
 {
     "required": true,
     "package": "one.ggsky.alternativeauth.mixin",
-    "compatibilityLevel": "JAVA_17",
-    "mixins": ["CheckAuthenticationMixin", "FindProfilesByNamesMixin"],
+    "compatibilityLevel": "JAVA_21",
+    "mixins": [
+        "HasJoinedServerMixin", "FindProfileByNameMixin", "FindProfilesByNamesMixin"],
     "injectors": {
         "defaultRequire": 1
     }

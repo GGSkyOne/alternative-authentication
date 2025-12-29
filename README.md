@@ -78,9 +78,13 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 Answers to some questions.
 
-### Q: Forge/NeoForge?
+### Q: Can't join server. Invalid signature for profile public key.
 
-A: No.
+A: Install [No Chat Reports](https://modrinth.com/mod/no-chat-reports) on your server. On client too if possible, but not required.
+
+### Q: Forge or NeoForge?
+
+A: Maybe in the future.
 
 ### Q: Update?
 
