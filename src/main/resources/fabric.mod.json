@@ -17,7 +17,7 @@
     },
     "mixins": ["alternative-auth.mixins.json"],
     "depends": {
-        "minecraft": [">=1.21.5", "<=1.21.8"],
+        "minecraft": [">=1.21.9", "<=1.21.11"],
         "fabric-api": "*"
     }
 }

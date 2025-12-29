@@ -1,10 +1,10 @@
 package one.ggsky.alternativeauth.mixin;
 
-import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.mojang.authlib.yggdrasil.YggdrasilGameProfileRepository;
+import com.mojang.authlib.yggdrasil.response.NameAndId;
 import one.ggsky.alternativeauth.config.AlternativeAuthConfig;
 import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
 import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
@@ -39,10 +39,10 @@ public class FindProfileByNameMixin {
         remap = false,
         cancellable = true
     )
-    private void findProfileByName(String name, CallbackInfoReturnable<Optional<GameProfile>> cir) {
+    private void findProfileByName(String name, CallbackInfoReturnable<Optional<NameAndId>> cir) {
         for (AlternativeAuthProvider provider : CONFIG.getProviders()) {
             try {
-                GameProfile profile = client.get(HttpAuthenticationService.constantURL(provider.getProfileUrl() + normalizeName(name)), GameProfile.class);
+                NameAndId profile = client.get(HttpAuthenticationService.constantURL(provider.getProfileUrl() + normalizeName(name)), NameAndId.class);
 
                 if (profile != null) {
                     cir.setReturnValue(Optional.of(profile));

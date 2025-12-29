@@ -32,10 +32,9 @@ import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Mixin(YggdrasilMinecraftSessionService.class)
-public class HasJoinedServerMixin {
+public abstract class HasJoinedServerMixin {
     @Unique
     private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
 
@@ -44,6 +43,11 @@ public class HasJoinedServerMixin {
 
     @Shadow @Final
     private MinecraftClient client;
+
+    @Shadow
+    private static Set<ProfileActionType> extractProfileActionTypes(Set<ProfileAction> response) {
+        return null;
+    }
 
     @Inject(
         at = @At("HEAD"),
@@ -71,11 +75,10 @@ public class HasJoinedServerMixin {
                 final HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
 
                 if (response != null && response.id() != null) {
+                    PropertyMap properties = null;
                     LOGGER.debug("Response is not null");
-                    final GameProfile result = new GameProfile(response.id(), profileName);
 
                     if (response.properties() != null) {
-                        PropertyMap properties;
                         LOGGER.debug("Properties is not null");
 
                         if (provider.getPropertyUrl() != null) {
@@ -94,15 +97,13 @@ public class HasJoinedServerMixin {
                         } else {
                             properties = response.properties();
                         }
-
-                        if (properties != null) {
-                            result.getProperties().putAll(properties);
-                        }
                     }
 
-                    final Set<ProfileActionType> profileActions = response.profileActions().stream()
-                        .map(ProfileAction::type)
-                        .collect(Collectors.toSet());
+                    final GameProfile result = properties != null
+                        ? new GameProfile(response.id(), profileName, properties)
+                        : new GameProfile(response.id(), profileName);
+
+                    final Set<ProfileActionType> profileActions = extractProfileActionTypes(response.profileActions());
 
                     LOGGER.info("Authenticating player via " + provider.name());
                     cir.setReturnValue(new ProfileResult(result, profileActions));
