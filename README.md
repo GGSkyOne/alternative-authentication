@@ -50,7 +50,9 @@ Your authentication providers, or authentication servers. You can remove, add, o
 
 -   `check_url`. URL for checking the player during authentication when joining the server.
 
--   `profiles_url`. URL for checking the player when adding or removing from the whitelist. Note that here must be used a URL for checking multiple usernames in an array, not just one username.
+-   `profile_url`. URL for checking the player when adding or removing from the whitelist for `findProfileByName` method. a.k.a query player UUID by username.
+
+-   `profiles_url`. URL for checking multiple usernames in an array for `findProfilesByNames` method. a.k.a query player UUID's in batch.
 
 -   `property_url`. Not required. Additional URL for fetching custom properties (like skin and cape), if needed, for the player when joining server. You can use `{0}` to put player username in the request, and `{1}` to put player UUID.
 
@@ -61,11 +63,13 @@ Your authentication providers, or authentication servers. You can remove, add, o
         {
             "name": "Mojang",
             "check_url": "https://sessionserver.mojang.com/session/minecraft/hasJoined",
+            "profile_url": "https://api.minecraftservices.com/minecraft/profile/lookup/name/",
             "profiles_url": "https://api.mojang.com/profiles/minecraft"
         },
         {
             "name": "Ely.by",
             "check_url": "https://authserver.ely.by/session/hasJoined",
+            "profile_url": "https://authserver.ely.by/api/users/profiles/minecraft/",
             "profiles_url": "https://authserver.ely.by/api/profiles/minecraft",
             "property_url": "http://skinsystem.ely.by/textures/signed/{0}"
         }
