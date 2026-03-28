@@ -10,6 +10,7 @@ import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
 import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
+import one.ggsky.alternativeauth.util.AlternativeAuthUtils;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,8 +19,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.text.MessageFormat;
-import java.util.Locale;
 import java.util.Optional;
 
 @Mixin(YggdrasilGameProfileRepository.class)
@@ -41,25 +40,25 @@ public class FindProfileByNameMixin {
     )
     private void findProfileByName(String name, CallbackInfoReturnable<Optional<NameAndId>> cir) {
         for (AlternativeAuthProvider provider : CONFIG.getProviders()) {
+            LOGGER.debug("Trying provider " + provider.getName());
+
             try {
-                NameAndId profile = client.get(HttpAuthenticationService.constantURL(provider.getProfileUrl() + normalizeName(name)), NameAndId.class);
+                NameAndId profile = client.get(HttpAuthenticationService.constantURL(provider.getProfileUrl() + AlternativeAuthUtils.normalizeName(name)), NameAndId.class);
 
                 if (profile != null) {
+                    LOGGER.debug("Resolved '" + name + "' to UUID " + profile.id());
+
                     cir.setReturnValue(Optional.of(profile));
                     return;
                 }
 
+                LOGGER.debug("Provider " + provider.getName() + " returned no result");
             } catch (MinecraftClientException e) {
-                LOGGER.debug(MessageFormat.format("Provider {0} failed for {1}", provider.name(), name));
+                LOGGER.debug("Provider " + provider.getName() + " failed: " + e.getMessage());
             }
         }
 
         LOGGER.warn("Couldn't find profile with name: " + name);
         cir.setReturnValue(Optional.empty());
-    }
-
-    @Unique
-    private static String normalizeName(final String name) {
-        return name.toLowerCase(Locale.ROOT);
     }
 }

@@ -4,10 +4,13 @@ import org.apache.logging.log4j.Logger;
 
 public class AlternativeAuthLogger {
     private final Logger logger;
-    private final boolean debugMode;
+    private volatile boolean debugMode;
 
-    public AlternativeAuthLogger(Logger logger, boolean debugMode) {
+    public AlternativeAuthLogger(Logger logger) {
         this.logger = logger;
+    }
+
+    public void setDebugMode(boolean debugMode) {
         this.debugMode = debugMode;
 
         if (debugMode) {

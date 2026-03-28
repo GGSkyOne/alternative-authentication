@@ -16,6 +16,7 @@ import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
 import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
+import one.ggsky.alternativeauth.util.AlternativeAuthUtils;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -64,7 +65,7 @@ public class FindProfilesByNamesMixin {
         final int page = 0;
 
         for (final List<String> request : Iterables.partition(criteria, ENTRIES_PER_PAGE)) {
-            final List<String> normalizedRequest = request.stream().map(FindProfilesByNamesMixin::normalizeName).toList();
+            final List<String> normalizedRequest = request.stream().map(AlternativeAuthUtils::normalizeName).toList();
 
             int failCount = 0;
             boolean failed;
@@ -77,13 +78,13 @@ public class FindProfilesByNamesMixin {
 
                     for (AlternativeAuthProvider provider : CONFIG.getProviders()) {
                         final URL url = HttpAuthenticationService.constantURL(provider.getProfilesUrl());
-                        response = client.post(url, normalizedRequest ,ProfileSearchResultsResponse.class);
+                        response = client.post(url, normalizedRequest, ProfileSearchResultsResponse.class);
 
                         if (response != null && !response.profiles().isEmpty()) {
-                            LOGGER.debug(MessageFormat.format("Response from {0} provider is not null and contains at least 1 element", provider.name()));
+                            LOGGER.debug(MessageFormat.format("Response from {0} provider is not null and contains at least 1 element", provider.getName()));
                             break;
                         } else {
-                            LOGGER.debug(MessageFormat.format("Response from {0} provider is either null or contains no elements", provider.name()));
+                            LOGGER.debug(MessageFormat.format("Response from {0} provider is either null or contains no elements", provider.getName()));
                         }
                     }
 
@@ -96,12 +97,12 @@ public class FindProfilesByNamesMixin {
 
                     for (final NameAndId profile : profiles) {
                         LOGGER.debug(MessageFormat.format("Successfully looked up profile {0}", profile));
-                        received.add(normalizeName(profile.name()));
+                        received.add(AlternativeAuthUtils.normalizeName(profile.name()));
                         callback.onProfileLookupSucceeded(profile.name(), profile.id());
                     }
 
                     for (final String name : request) {
-                        if (received.contains(normalizeName(name))) {
+                        if (received.contains(AlternativeAuthUtils.normalizeName(name))) {
                             continue;
                         }
 
@@ -134,10 +135,5 @@ public class FindProfilesByNamesMixin {
         }
 
         ci.cancel();
-    }
-
-    @Unique
-    private static String normalizeName(final String name) {
-        return name.toLowerCase(Locale.ROOT);
     }
 }

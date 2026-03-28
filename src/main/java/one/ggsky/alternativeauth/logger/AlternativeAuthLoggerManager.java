@@ -3,10 +3,10 @@ package one.ggsky.alternativeauth.logger;
 import org.apache.logging.log4j.LogManager;
 
 public class AlternativeAuthLoggerManager {
-    private static AlternativeAuthLogger logger = new AlternativeAuthLogger(LogManager.getLogger("alternative-auth"), false);
+    private static final AlternativeAuthLogger logger = new AlternativeAuthLogger(LogManager.getLogger("alternative-auth"));
 
     public static void configureLogger(boolean debugMode) {
-        logger = new AlternativeAuthLogger(LogManager.getLogger("alternative-auth"), debugMode);
+        logger.setDebugMode(debugMode);
     }
 
     public static AlternativeAuthLogger getLogger() {

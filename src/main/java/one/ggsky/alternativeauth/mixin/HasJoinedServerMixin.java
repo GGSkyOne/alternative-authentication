@@ -10,6 +10,7 @@ import com.mojang.authlib.yggdrasil.ProfileActionType;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
+import com.mojang.authlib.yggdrasil.response.NameAndId;
 import com.mojang.authlib.yggdrasil.response.ProfileAction;
 
 import one.ggsky.alternativeauth.config.AlternativeAuthConfig;
@@ -17,6 +18,7 @@ import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
 import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
+import one.ggsky.alternativeauth.util.AlternativeAuthUtils;
 
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -66,54 +68,52 @@ public abstract class HasJoinedServerMixin {
         }
 
         for (AlternativeAuthProvider provider : CONFIG.getProviders()) {
-            LOGGER.debug("Trying to authenticate player via " + provider.name());
+            LOGGER.debug("Trying to authenticate player via " + provider.getName());
             LOGGER.debug("Using " + provider.getCheckUrl());
 
-            final URL url = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(provider.getCheckUrl()), HttpAuthenticationService.buildQuery(arguments));
-            
+            URL url = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(provider.getCheckUrl()), HttpAuthenticationService.buildQuery(arguments));
+
             try {
-                final HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
+                HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
+                LOGGER.debug(provider.getName() + " session response: " + (response == null ? "null" : AlternativeAuthUtils.GSON.toJson(response)));
 
-                if (response != null && response.id() != null) {
-                    PropertyMap properties = null;
-                    LOGGER.debug("Response is not null");
+                if (response == null || response.id() == null) {
+                    if (playerExistsOnProvider(provider, profileName)) {
+                        LOGGER.warn("Player '" + profileName + "' exists on " + provider.getName() + " but failed authentication, fallback prevented");
 
-                    if (response.properties() != null) {
-                        LOGGER.debug("Properties is not null");
-
-                        if (provider.getPropertyUrl() != null) {
-                            LOGGER.debug(MessageFormat.format("Found {0} property URL, fetching {1}", provider.name(), MessageFormat.format(provider.getPropertyUrl(), profileName, response.id())));
-
-                            final URL propertyUrl = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(MessageFormat.format(provider.getPropertyUrl(), profileName, response.id())), null);
-                            final HasJoinedMinecraftServerResponse propertyResponse = client.get(propertyUrl, HasJoinedMinecraftServerResponse.class);
-
-                            if (propertyResponse != null) {
-                                LOGGER.debug("Properties is not null");
-                                properties = propertyResponse.properties();
-                            } else {
-                                LOGGER.debug("Property response is null, falling back to initial properties");
-                                properties = response.properties();
-                            }
-                        } else {
-                            properties = response.properties();
-                        }
+                        cir.setReturnValue(null);
+                        break;
                     }
 
-                    final GameProfile result = properties != null
-                        ? new GameProfile(response.id(), profileName, properties)
-                        : new GameProfile(response.id(), profileName);
-
-                    final Set<ProfileActionType> profileActions = extractProfileActionTypes(response.profileActions());
-
-                    LOGGER.info("Authenticating player via " + provider.name());
-                    cir.setReturnValue(new ProfileResult(result, profileActions));
-                    break;
-                } else {
                     cir.setReturnValue(null);
+                    continue;
                 }
-            } catch (final MinecraftClientException exception) {
-                if (exception.toAuthenticationException() instanceof final AuthenticationUnavailableException unavailable) {
+
+                PropertyMap properties = resolveProperties(provider, profileName, response);
+
+                GameProfile profile = properties != null
+                    ? new GameProfile(response.id(), profileName, properties)
+                    : new GameProfile(response.id(), profileName);
+
+                final Set<ProfileActionType> profileActions = extractProfileActionTypes(response.profileActions());
+
+                LOGGER.debug("Authentication successful for " + profileName + " (UUID: " + response.id() + ")");
+                LOGGER.info("Authenticating player via " + provider.getName());
+
+                cir.setReturnValue(new ProfileResult(profile, profileActions));
+                break;
+            } catch (MinecraftClientException exception) {
+                LOGGER.debug(provider.getName() + " threw during session check: " + exception.getMessage());
+
+                if (exception.toAuthenticationException() instanceof AuthenticationUnavailableException unavailable) {
                     throw unavailable;
+                }
+
+                if (playerExistsOnProvider(provider, profileName)) {
+                    LOGGER.warn("Player '" + profileName + "' exists on " + provider.getName() + " but failed authentication, fallback prevented");
+
+                    cir.setReturnValue(null);
+                    break;
                 }
 
                 cir.setReturnValue(null);
@@ -121,5 +121,63 @@ public abstract class HasJoinedServerMixin {
         }
 
         cir.cancel();
+    }
+
+    @Unique
+    private boolean playerExistsOnProvider(AlternativeAuthProvider provider, String profileName) {
+        if (!CONFIG.isPreventFallbackIfPlayerExists()) return false;
+
+        String profileUrl = provider.getProfileUrl();
+
+        if (profileUrl == null) {
+            LOGGER.debug("Provider " + provider.getName() + " has no profileUrl, cannot check player existence");
+            return false;
+        }
+
+        try {
+            NameAndId profile = client.get(
+                HttpAuthenticationService.constantURL(profileUrl + AlternativeAuthUtils.normalizeName(profileName)),
+                NameAndId.class
+            );
+
+            return profile != null;
+        } catch (MinecraftClientException e) {
+            LOGGER.debug("Could not verify player existence on " + provider.getName() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    @Unique
+    private PropertyMap resolveProperties(AlternativeAuthProvider provider, String profileName, HasJoinedMinecraftServerResponse response) {
+        PropertyMap fallback = response.properties();
+
+        if (fallback == null) {
+            LOGGER.debug("Session response for " + profileName + " has no properties");
+            return null;
+        }
+
+        String propertyUrlTemplate = provider.getPropertyUrl();
+
+        if (propertyUrlTemplate == null) {
+            LOGGER.debug("Provider " + provider.getName() + " has no propertyUrl, using session response properties");
+            return fallback;
+        }
+
+        String resolvedUrl = MessageFormat.format(propertyUrlTemplate, profileName, response.id());
+        LOGGER.debug(MessageFormat.format("Found {0} property URL, fetching {1}", provider.getName(), resolvedUrl));
+
+        URL propertyUrl = HttpAuthenticationService.concatenateURL(
+            HttpAuthenticationService.constantURL(resolvedUrl), null
+        );
+
+        HasJoinedMinecraftServerResponse propertyResponse = client.get(propertyUrl, HasJoinedMinecraftServerResponse.class);
+
+        LOGGER.debug("Property response: " + (propertyResponse == null ? "null" : AlternativeAuthUtils.GSON.toJson(propertyResponse)));
+
+        if (propertyResponse != null) {
+            return propertyResponse.properties();
+        }
+
+        return fallback;
     }
 }

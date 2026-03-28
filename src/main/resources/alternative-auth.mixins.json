@@ -3,7 +3,10 @@
     "package": "one.ggsky.alternativeauth.mixin",
     "compatibilityLevel": "JAVA_21",
     "mixins": [
-        "HasJoinedServerMixin", "FindProfileByNameMixin", "FindProfilesByNamesMixin"],
+        "HasJoinedServerMixin",
+        "FindProfileByNameMixin",
+        "FindProfilesByNamesMixin"
+    ],
     "injectors": {
         "defaultRequire": 1
     }
