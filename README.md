@@ -1,99 +1,103 @@
 # Alternative Authentication
 
-Alternative Authentication is a mod that allows you to use two or more third-party or custom authentication servers without interfering with Mojang's authentication servers. In addition, it also implements whitelist support for third-party authentication servers.
+Alternative Authentication is a server-side mod that allows multiple third-party or custom authentication servers to coexist alongside Mojang's. By default, two providers are configured: [Mojang](https://minecraft.wiki/w/Mojang_API) and [Ely.by](https://docs.ely.by/en/api.html). You can add, remove, or reorder them freely.
 
-By default, there are two configured authentication servers in the config - [Mojang](https://wiki.vg/Mojang_API) and [Ely.by](https://docs.ely.by/en/api.html). You can add or remove as many as you want.
+**Requirements:**
 
-Requires `online-mode=true` in the server configuration for correct operation. Also it is recommended to set `enforce-secure-profile=false` to disable message signing that players joining via third-party providers do not have.
+- `online-mode=true` in `server.properties`
+- `enforce-secure-profile=false` is recommended, players joining via third-party providers don't have signed chat keys
 
-Keep in mind that this is only a server-side mod! And if you want to use third-party authentication on the client, you need to use a supported launcher or authlib-injector.
+> **Server-side only.** Players using a third-party auth provider on the client need a compatible launcher or injector.
 
 ## Features
 
--   ⚙️ Convenient configuration of authentication servers.
+- ⚙️ Configurable list of authentication providers.
+- 🔐 Sequential provider fallback when a player joins the server
+- 🔒 Optional fallback prevention: if a username exists on a provider but authentication fails, further providers are not tried.
+- 👕 Player texture support (skin and cape) via third-party skin servers
+- 📝 Whitelist support across all configured providers
 
--   🔐 Support for third-party authentication servers when joining the server.
+## How It Works
 
--   👕 Support for setting player textures via third-party skin server when joining the server.
+### Joining the Server
 
--   🌐 Support for fetching additional properties for the player when joining server. Example of use: set the textures (skin and cape) for the player server-side so client can see player's texture without any mods.
+When a player connects, each configured provider is tried in order until one successfully authenticates the session. If no provider succeeds, the player is denied access.
 
--   📝 Support for adding players the whitelist via third-party authentication servers.
+If [`preventFallbackIfPlayerExists`](#preventfallbackifplayerexists) is enabled and a player's username is found on a provider but authentication fails, no further providers are attempted. This prevents a user registered on a fallback service from impersonating an account on an earlier provider.
 
-## Joining the server
+### Whitelist
 
-When a player connects to a server, authentication first occurs on Mojang servers, if the player cannot be authenticated there, then a check is made on <span>Ely.by</span> or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in <span>Ely.by</span>, and then in Mojang. If the player has not passed the check on any server, then the player is not allowed to the server. His username could not be verified.
+When a player is added to the whitelist, each provider is queried in order until the username is resolved to a UUID. If the player is not found on any provider, they cannot be added. The order in which providers are checked is determined by the [`providers`](#providers) list in the config.
 
-## Whitelist
+#### What if two players share the same username across providers?
 
-You can use the whitelist with this mod, it implements support for third-party authentication servers for adding to the whitelist.
-
-When you add a player to the whitelist, the check first occurs on Mojang servers, if the player was not found, then the check is hapenning on <span>Ely.by</span> or other servers, depending on the configuration. You can change the order of checking servers in the configuration, for example, first check in <span>Ely.by</span>, and then in Mojang. If the player was not found on any of the servers, then he cannot be added to the whitelist.
-
-### What if there are two people with the same username on multiple authentication servers?
-
-Well, in this case, you can temporarily change the order of authentication servers or add the player to the whitelist yourself.
+By default, the first provider to resolve the username wins. If you need to whitelist a player whose username exists on a non-primary provider, temporarily reorder the [`providers`](#providers) list and add them manually with `/whitelist add`.
 
 ## Configuration
 
-This is an example configuration file, located at `/config/alternative-auth.json`.
+The config file is created automatically at `config/alternative-auth.json` on first launch.
 
-### Debug
+### `configVersion`
 
-If you change the value from false to true, then during authentication or whitelisting, the corresponding data will be logged to the console, which can be useful for troubleshooting. Disabled by default.
+The internal schema version. Managed automatically by the mod, do not edit this manually.
 
-### Providers
+### `debugMode`
 
-Your authentication providers, or authentication servers. You can remove, add, or swap them to change the order of checking.
+When `true`, detailed logs are written to the console during authentication and whitelist operations. Useful for troubleshooting. Disabled by default.
 
--   `name`. Display name for the provider.
+### `preventFallbackIfPlayerExists`
 
--   `check_url`. URL for checking the player during authentication when joining the server.
+When `true`, stops the provider chain if a username is found on the current provider but authentication fails. Prevents username spoofing via fallback services, non-premium players with usernames unique to a fallback service are not affected. Disabled by default.
 
--   `profile_url`. URL for checking the player when adding or removing from the whitelist for `findProfileByName` method. a.k.a query player UUID by username.
+### `providers`
 
--   `profiles_url`. URL for checking multiple usernames in an array for `findProfilesByNames` method. a.k.a query player UUID's in batch.
+The ordered list of authentication providers. Each entry supports the following fields:
 
--   `property_url`. Not required. Additional URL for fetching custom properties (like skin and cape), if needed, for the player when joining server. You can use `{0}` to put player username in the request, and `{1}` to put player UUID.
+| Field         | Required | Description                                                                                                                 |
+|---------------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `name`        | ✅        | Display name for the provider                                                                                               |
+| `checkUrl`    | ✅        | Session validation endpoint, queried when a player joins the server                                                         |
+| `profileUrl`  | ✅        | Single username to UUID lookup endpoint, used for whitelist operations                                                      |
+| `profilesUrl` | ✅        | Batch username to UUID lookup endpoint                                                                                      |
+| `propertyUrl` | ❌        | Endpoint for fetching player properties such as skin and cape. Use `{0}` for the player's username and `{1}` for their UUID |
 
-```
+```json
 {
-    "debug": false,
+    "configVersion": 1,
+    "debugMode": false,
+    "preventFallbackIfPlayerExists": false,
     "providers": [
         {
             "name": "Mojang",
-            "check_url": "https://sessionserver.mojang.com/session/minecraft/hasJoined",
-            "profile_url": "https://api.minecraftservices.com/minecraft/profile/lookup/name/",
-            "profiles_url": "https://api.mojang.com/profiles/minecraft"
+            "checkUrl": "https://sessionserver.mojang.com/session/minecraft/hasJoined",
+            "profileUrl": "https://api.minecraftservices.com/minecraft/profile/lookup/name/",
+            "profilesUrl": "https://api.minecraftservices.com/minecraft/profile/lookup/bulk/byname"
         },
         {
             "name": "Ely.by",
-            "check_url": "https://authserver.ely.by/session/hasJoined",
-            "profile_url": "https://authserver.ely.by/api/users/profiles/minecraft/",
-            "profiles_url": "https://authserver.ely.by/api/profiles/minecraft",
-            "property_url": "http://skinsystem.ely.by/textures/signed/{0}"
+            "checkUrl": "https://authserver.ely.by/session/hasJoined",
+            "profileUrl": "https://authserver.ely.by/api/users/profiles/minecraft/",
+            "profilesUrl": "https://authserver.ely.by/api/profiles/minecraft",
+            "propertyUrl": "http://skinsystem.ely.by/textures/signed/{0}"
         }
     ]
 }
-
 ```
 
 ## FAQ
 
-Answers to some questions.
+### Q: Can't join the server, "Invalid signature for profile public key"
 
-### Q: Can't join server. Invalid signature for profile public key.
+A: Install [No Chat Reports](https://modrinth.com/mod/no-chat-reports) on your server. Installing it on the client is recommended but not required.
 
-A: Install [No Chat Reports](https://modrinth.com/mod/no-chat-reports) on your server. On client too if possible, but not required.
+### Q: Is Forge or NeoForge supported?
 
-### Q: Forge or NeoForge?
+A: NeoForge support is planned.
 
-A: Maybe in the future.
+### Q: When will the mod be updated to the latest Minecraft version?
 
-### Q: Update?
+A: The mod targets the latest stable release and is updated as time allows. Snapshot support is not planned.
 
-A: I will try to support the mod on the latest versions of the game, it may take some time. I’m not sure yet whether I will support snapshots, but releases definitely.
+### Q: I found a bug, have a suggestion, or the mod isn't working correctly
 
-### Q: I have issue with the mod, suggestion or feature request, the mod doesn't work correctly, etc.
-
-A: [Feel free to open an issue!](https://github.com/GGSkyOne/alternative-authentication/issues)
+A: Feel free to [open an issue on GitHub](https://github.com/GGSkyOne/alternative-authentication/issues)!
