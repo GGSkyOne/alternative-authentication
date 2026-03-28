@@ -113,8 +113,6 @@ jobs:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
 
-          github-token: ""
-
           name: ${{ env.RELEASE_NAME }}
           version: ${{ env.FULL_VERSION }}
           version-type: >-
