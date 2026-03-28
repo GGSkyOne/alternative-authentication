@@ -2,32 +2,28 @@ package one.ggsky.alternativeauth.config;
 
 public class AlternativeAuthProvider {
     private String name;
-    private String check_url;
-    private String profile_url;
-    private String profiles_url;
-    private String property_url;
+    private String checkUrl;
+    private String profileUrl;
+    private String profilesUrl;
+    private String propertyUrl;
 
-    public String name() {
+    public String getName() {
         return name;
     }
 
     public String getCheckUrl() {
-        return check_url;
+        return checkUrl;
     }
 
     public String getProfileUrl() {
-        return profile_url;
-    }
-
-    public void setProfileUrl(String profile_url) {
-        this.profile_url = profile_url;
+        return profileUrl;
     }
 
     public String getProfilesUrl() {
-        return profiles_url;
+        return profilesUrl;
     }
 
     public String getPropertyUrl() {
-        return property_url;
+        return propertyUrl;
     }
 }

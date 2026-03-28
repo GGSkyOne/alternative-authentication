@@ -9,13 +9,17 @@ import java.util.Scanner;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import net.fabricmc.loader.api.FabricLoader;
 import one.ggsky.alternativeauth.AlternativeAuthentication;
+import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
+import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
 
 public class AlternativeAuthConfigManager {
     private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
     private static AlternativeAuthConfig config = new AlternativeAuthConfig();
 
     public static AlternativeAuthConfig getConfig() {
@@ -23,62 +27,95 @@ public class AlternativeAuthConfigManager {
     }
 
     public static void loadConfig() {
-        File configurationFile = FabricLoader.getInstance()
+        File configFile = FabricLoader.getInstance()
             .getConfigDir()
             .resolve("alternative-auth.json")
             .toFile();
 
-        if (!configurationFile.exists()) {
-            createDefaultConfig(configurationFile);
+        if (!configFile.exists()) {
+            createDefaultConfig(configFile);
             return;
         }
 
-        try (FileReader reader = new FileReader(configurationFile)) {
-            config = gson.fromJson(new JsonReader(reader), AlternativeAuthConfig.class);
+        JsonObject raw;
+
+        try (FileReader reader = new FileReader(configFile)) {
+            raw = gson.fromJson(reader, JsonObject.class);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.warn("Failed to load config file: " + e.getMessage());
             return;
         }
 
-        boolean upgraded = upgradeConfigIfNeeded();
-
-        if (upgraded) {
-            saveConfig(configurationFile);
+        if (needsMigration(raw)) {
+            LOGGER.info("Migrating config to v1...");
+            migrateToV1(raw);
+            saveRawConfig(configFile, raw);
         }
+
+        config = gson.fromJson(raw, AlternativeAuthConfig.class);
     }
 
-    private static boolean upgradeConfigIfNeeded() {
-        boolean changed = false;
+    private static boolean needsMigration(JsonObject obj) {
+        JsonElement v = obj.get("configVersion");
+        return v == null || v.isJsonNull() || v.getAsInt() < 1;
+    }
 
-        if (config.getProviders() == null) return false;
+    private static void migrateToV1(JsonObject obj) {
+        obj.addProperty("configVersion", 1);
 
-        for (AlternativeAuthProvider provider : config.getProviders()) {
-            if (provider.getProfileUrl() == null) {
-                switch (provider.name().toLowerCase()) {
-                    case "mojang" ->
-                        provider.setProfileUrl("https://api.minecraftservices.com/minecraft/profile/lookup/name/");
-                    case "ely.by" ->
-                        provider.setProfileUrl("https://authserver.ely.by/api/users/profiles/minecraft/");
+        if (obj.has("debug") && !obj.has("debugMode")) {
+            obj.add("debugMode", obj.get("debug"));
+            obj.remove("debug");
+        } else if (!obj.has("debugMode")) {
+            obj.addProperty("debugMode", false);
+        }
+
+        if (!obj.has("preventFallbackIfPlayerExists")) {
+            obj.addProperty("preventFallbackIfPlayerExists", false);
+        }
+
+        if (!obj.has("providers")) return;
+
+        for (JsonElement el : obj.getAsJsonArray("providers")) {
+            JsonObject provider = el.getAsJsonObject();
+
+            renameField(provider, "check_url", "checkUrl");
+            renameField(provider, "profile_url", "profileUrl");
+            renameField(provider, "profiles_url", "profilesUrl");
+            renameField(provider, "property_url", "propertyUrl");
+
+            if (!provider.has("profileUrl") || provider.get("profileUrl").isJsonNull()) {
+                if (!provider.has("name")) continue;
+
+                switch (provider.get("name").getAsString().toLowerCase()) {
+                    case "mojang" -> provider.addProperty("profileUrl",
+                        "https://api.minecraftservices.com/minecraft/profile/lookup/name/");
+                    case "ely.by" -> provider.addProperty("profileUrl",
+                        "https://authserver.ely.by/api/users/profiles/minecraft/");
                 }
-
-                changed = true;
             }
         }
-
-        return changed;
     }
 
-    private static void saveConfig(File file) {
-        try (PrintWriter writer = new PrintWriter(file)) {
-            writer.println(gson.toJson(config));
-        } catch (IOException e) {
-            e.printStackTrace();
+    private static void renameField(JsonObject obj, String from, String to) {
+        if (obj.has(from) && !obj.has(to)) {
+            obj.add(to, obj.get(from));
+            obj.remove(from);
         }
     }
 
-    private static void createDefaultConfig(File configurationFile) {
+    private static void saveRawConfig(File file, JsonObject obj) {
+        try (PrintWriter writer = new PrintWriter(file)) {
+            writer.println(gson.toJson(obj));
+        } catch (IOException e) {
+            LOGGER.warn("Failed to save config file: " + e.getMessage());
+        }
+    }
+
+    private static void createDefaultConfig(File configFile) {
         try {
-            configurationFile.getParentFile().mkdirs();
+            configFile.getParentFile().mkdirs();
+
             InputStream stream = AlternativeAuthentication.class
                 .getClassLoader()
                 .getResourceAsStream("alternative-auth.json");
@@ -93,11 +130,11 @@ public class AlternativeAuthConfigManager {
 
             config = gson.fromJson(content, AlternativeAuthConfig.class);
 
-            try (PrintWriter writer = new PrintWriter(configurationFile)) {
+            try (PrintWriter writer = new PrintWriter(configFile)) {
                 writer.println(content);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.warn("Failed to create default config: " + e.getMessage());
         }
     }
 }
