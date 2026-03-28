@@ -41,6 +41,12 @@ jobs:
           echo "FULL_VERSION=$FULL_VERSION" >> "$GITHUB_ENV"
           echo "MOD_VERSION=$MOD_VERSION"   >> "$GITHUB_ENV"
 
+      - name: Set release name
+        run: |
+          MC_RANGE=$(echo "$MC_VERSIONS" | tr -d '[]' | sed 's/,/ - /')
+          RELEASE_NAME="Alternative Auth ${MOD_VERSION} for Minecraft ${MC_RANGE}"
+          echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
+
       - name: Extract changelog
         run: |
           VERSION="$MOD_VERSION"
@@ -88,9 +94,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          name: ${{ env.RELEASE_NAME }}
           body_path: release_notes.md
-          files: ${{ env.JAR }}
+          files: |
+            ${{ env.JAR }}
+            build/libs/*-sources.jar
           draft: false
           prerelease: >-
             ${{
@@ -98,15 +106,6 @@ jobs:
               contains(github.ref_name, '-beta')  ||
               contains(github.ref_name, '-rc')
             }}
-
-      - name: Read release notes for Modrinth
-        id: notes
-        run: |
-          {
-            echo "body<<EOF"
-            cat release_notes.md
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Publish to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
@@ -116,7 +115,7 @@ jobs:
 
           github-token: ""
 
-          name: ${{ github.ref_name }}
+          name: ${{ env.RELEASE_NAME }}
           version: ${{ env.FULL_VERSION }}
           version-type: >-
             ${{
@@ -124,11 +123,11 @@ jobs:
               contains(github.ref_name, '-beta')  && 'beta'  ||
               'release'
             }}
-          changelog: ${{ steps.notes.outputs.body }}
-          files: ${{ env.JAR }}
+          changelog-file: release_notes.md
+          files: |
+            ${{ env.JAR }}
+            build/libs/*-sources.jar
 
-          loaders: |
-            fabric
-            quilt
+          loaders: fabric
           game-versions: ${{ env.MC_VERSIONS }}
           java: ${{ env.JAVA_VERSION }}
