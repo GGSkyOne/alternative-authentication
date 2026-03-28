@@ -52,7 +52,7 @@ jobs:
           VERSION="$MOD_VERSION"
 
           NOTES=$(awk \
-            "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found{print}" \
+            "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found && /^---/{exit} found{print}" \
             CHANGELOG.md)
 
           if [ -z "$NOTES" ]; then
