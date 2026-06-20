@@ -4,14 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [1.3.0] - 2026-03-28
+## [1.3.0] - 2026-06-20
 
-- Updated to support 26.1
+- Updated to support Minecraft 26.2 ("Chaos Cubed").
+- Bumped Fabric Loader to 0.19.3, Fabric API to 0.152.2+26.2, Fabric Loom to 1.17-SNAPSHOT.
+- Bumped Java compile target from 21 to 25.
+- Bumped Gradle wrapper from 9.4.1 to 9.5.1.
+- Fixed `fabric.mod.json` dependency version constraints.
 - Added new `preventFallbackIfPlayerExists` option.
 - Added config version system and reworked config related stuff.
 - Added more detailed debug logs.
 - Internal refactors and improvements.
-- Bumped to 1.3.0.
 
 --- 
 
