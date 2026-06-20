@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.3.1] - 2026-06-20
+
+- Added `ChatSessionUpdateMixin` to prevent players with third-party authentication from being kicked for invalid profile key signatures.
+- Bumped to 1.3.1.
+
+---
+
 ## [1.3.0] - 2026-06-20
 
 - Updated to support Minecraft 26.2 ("Chaos Cubed").
