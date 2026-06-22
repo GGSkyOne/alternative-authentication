@@ -5,7 +5,7 @@ Alternative Authentication is a server-side mod that allows multiple third-party
 **Requirements:**
 
 - `online-mode=true` in `server.properties`
-- `enforce-secure-profile=false` is recommended, players joining via third-party providers don't have signed chat keys
+- `enforce-secure-profile=false` is handled automatically by the mod, players joining via third-party providers don't have signed chat keys
 
 > **Server-side only.** Players using a third-party auth provider on the client need a compatible launcher or injector.
 

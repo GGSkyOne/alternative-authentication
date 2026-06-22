@@ -6,7 +6,7 @@ on:
       - "v*"
 
 env:
-  MC_VERSIONS: "26.1"
+  MC_VERSIONS: "26.2"
   JAVA_VERSION: "25"
 
 jobs:
