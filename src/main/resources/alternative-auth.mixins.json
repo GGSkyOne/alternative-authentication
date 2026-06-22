@@ -6,7 +6,8 @@
         "HasJoinedServerMixin",
         "FindProfileByNameMixin",
         "FindProfilesByNamesMixin",
-        "ChatSessionUpdateMixin"
+        "ChatSessionUpdateMixin",
+        "DedicatedServerMixin"
     ],
     "injectors": {
         "defaultRequire": 1

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [1.3.2] - 2026-06-22
+
+- Added `DedicatedServerMixin` to override `enforceSecureProfile` to `false`, fixing chat being disabled for all players when `ChatSessionUpdateMixin` is active.
+- Bumped to 1.3.2.
+
+---
+
 ## [1.3.1] - 2026-06-20
 
 - Added `ChatSessionUpdateMixin` to prevent players with third-party authentication from being kicked for invalid profile key signatures.
