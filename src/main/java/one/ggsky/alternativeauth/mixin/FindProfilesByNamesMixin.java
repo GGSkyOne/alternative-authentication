@@ -2,14 +2,12 @@ package one.ggsky.alternativeauth.mixin;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
-import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.ProfileLookupCallback;
 import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
-import com.mojang.authlib.yggdrasil.ProfileNotFoundException;
-import com.mojang.authlib.yggdrasil.YggdrasilGameProfileRepository;
-import com.mojang.authlib.yggdrasil.response.NameAndId;
-import com.mojang.authlib.yggdrasil.response.ProfileSearchResultsResponse;
+import com.mojang.authlib.services.ProfileNotFoundException;
+import com.mojang.authlib.services.response.NameAndId;
+import com.mojang.authlib.services.response.ProfileSearchResultsResponse;
 
 import one.ggsky.alternativeauth.config.AlternativeAuthConfig;
 import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
@@ -26,12 +24,13 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Mixin(YggdrasilGameProfileRepository.class)
+@Mixin(targets = "com.mojang.authlib.services.MinecraftServicesProfileRepository", remap = false)
 public class FindProfilesByNamesMixin {
     @Unique
     private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
@@ -52,15 +51,15 @@ public class FindProfilesByNamesMixin {
     private static final int DELAY_BETWEEN_FAILURES = 750;
 
     @Inject(
-        at = @At("HEAD"),
-        method = "findProfilesByNames",
-        remap = false,
-        cancellable = true
+            at = @At("HEAD"),
+            method = "findProfilesByNames",
+            remap = false,
+            cancellable = true
     )
     public void findProfilesByNames(String[] names, ProfileLookupCallback callback, CallbackInfo ci) {
         final Set<String> criteria = Arrays.stream(names)
-            .filter(name -> !Strings.isNullOrEmpty(name))
-            .collect(Collectors.toSet());
+                .filter(name -> !Strings.isNullOrEmpty(name))
+                .collect(Collectors.toSet());
 
         final int page = 0;
 
@@ -77,14 +76,18 @@ public class FindProfilesByNamesMixin {
                     ProfileSearchResultsResponse response = null;
 
                     for (AlternativeAuthProvider provider : CONFIG.getProviders()) {
-                        final URL url = HttpAuthenticationService.constantURL(provider.getProfilesUrl());
-                        response = client.post(url, normalizedRequest, ProfileSearchResultsResponse.class);
+                        try {
+                            final URL url = new URL(provider.getProfilesUrl());
+                            response = client.post(url, normalizedRequest, ProfileSearchResultsResponse.class);
 
-                        if (response != null && !response.profiles().isEmpty()) {
-                            LOGGER.debug(MessageFormat.format("Response from {0} provider is not null and contains at least 1 element", provider.getName()));
-                            break;
-                        } else {
-                            LOGGER.debug(MessageFormat.format("Response from {0} provider is either null or contains no elements", provider.getName()));
+                            if (response != null && !response.profiles().isEmpty()) {
+                                LOGGER.debug(MessageFormat.format("Response from {0} provider is not null and contains at least 1 element", provider.getName()));
+                                break;
+                            } else {
+                                LOGGER.debug(MessageFormat.format("Response from {0} provider is either null or contains no elements", provider.getName()));
+                            }
+                        } catch (MalformedURLException e) {
+                            LOGGER.debug("Malformed profiles URL for " + provider.getName() + ": " + e.getMessage());
                         }
                     }
 
