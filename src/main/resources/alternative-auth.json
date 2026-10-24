@@ -2,6 +2,11 @@
     "configVersion": 1,
     "debugMode": false,
     "preventFallbackIfPlayerExists": false,
+    "mineSkin": {
+        "enabled": false,
+        "apiKey": "",
+        "proxyUrlUpload": false
+    },
     "providers": [
         {
             "name": "Mojang",

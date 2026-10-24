@@ -6,6 +6,7 @@ public class AlternativeAuthConfig {
     private Integer configVersion = 1;
     private Boolean debugMode = false;
     private Boolean preventFallbackIfPlayerExists = false;
+    private MineSkinConfig mineSkin = new MineSkinConfig();
     private List<AlternativeAuthProvider> providers = List.of();
 
     public int getConfigVersion() {
@@ -18,6 +19,10 @@ public class AlternativeAuthConfig {
 
     public boolean isPreventFallbackIfPlayerExists() {
         return Boolean.TRUE.equals(preventFallbackIfPlayerExists);
+    }
+
+    public MineSkinConfig getMineSkin() {
+        return mineSkin != null ? mineSkin : new MineSkinConfig();
     }
 
     public List<AlternativeAuthProvider> getProviders() {
