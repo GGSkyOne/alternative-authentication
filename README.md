@@ -49,6 +49,15 @@ When `true`, detailed logs are written to the console during authentication and 
 
 When `true`, stops the provider chain if a username is found on the current provider but authentication fails. Prevents username spoofing via fallback services, non-premium players with usernames unique to a fallback service are not affected. Disabled by default.
 
+### `mineSkin`
+
+Configuration for external skin re-signing via the [MineSkin API](https://mineskin.org). For vanilla client suport for roviders such as Drasl. When `mineSkin.enabled` is `true`, external skins are automatically uploaded to Mojang and re-signed via MineSkin so that vanilla players can see them. Re-signed skins are cached locally for 24 hours.
+
+| Field            | Description                                                                                             |
+|------------------|---------------------------------------------------------------------------------------------------------|
+| `enabled`        | When `true`, external skins without Mojang signatures are re-signed via MineSkin. Disabled by default.  |
+| `apiKey`         | Optional MineSkin API key (obtainable from [account.mineskin.org](https://account.mineskin.org/keys)).  |
+
 ### `providers`
 
 The ordered list of authentication providers. Each entry supports the following fields:
@@ -66,6 +75,11 @@ The ordered list of authentication providers. Each entry supports the following 
     "configVersion": 1,
     "debugMode": false,
     "preventFallbackIfPlayerExists": false,
+    "mineSkin": {
+        "enabled": false,
+        "apiKey": "",
+        "proxyUrlUpload": false
+    },
     "providers": [
         {
             "name": "Mojang",

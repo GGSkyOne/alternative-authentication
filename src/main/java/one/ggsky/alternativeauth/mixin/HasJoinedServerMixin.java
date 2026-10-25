@@ -1,23 +1,23 @@
 package one.ggsky.alternativeauth.mixin;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.HttpAuthenticationService;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.exceptions.MinecraftClientException;
 import com.mojang.authlib.minecraft.client.MinecraftClient;
 import com.mojang.authlib.properties.PropertyMap;
-import com.mojang.authlib.yggdrasil.ProfileActionType;
-import com.mojang.authlib.yggdrasil.ProfileResult;
-import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
-import com.mojang.authlib.yggdrasil.response.HasJoinedMinecraftServerResponse;
-import com.mojang.authlib.yggdrasil.response.NameAndId;
-import com.mojang.authlib.yggdrasil.response.ProfileAction;
+import com.mojang.authlib.services.ProfileActionType;
+import com.mojang.authlib.services.ProfileResult;
+import com.mojang.authlib.services.MinecraftServicesSessionService;
+import com.mojang.authlib.services.response.HasJoinedMinecraftServerResponse;
+import com.mojang.authlib.services.response.NameAndId;
+import com.mojang.authlib.services.response.ProfileAction;
 
 import one.ggsky.alternativeauth.config.AlternativeAuthConfig;
 import one.ggsky.alternativeauth.config.AlternativeAuthConfigManager;
 import one.ggsky.alternativeauth.config.AlternativeAuthProvider;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLogger;
 import one.ggsky.alternativeauth.logger.AlternativeAuthLoggerManager;
+import one.ggsky.alternativeauth.skin.SkinResigner;
 import one.ggsky.alternativeauth.util.AlternativeAuthUtils;
 
 import org.spongepowered.asm.mixin.Final;
@@ -29,13 +29,17 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-@Mixin(YggdrasilMinecraftSessionService.class)
+@Mixin(MinecraftServicesSessionService.class)
 public abstract class HasJoinedServerMixin {
     @Unique
     private static final AlternativeAuthLogger LOGGER = AlternativeAuthLoggerManager.getLogger();
@@ -52,10 +56,10 @@ public abstract class HasJoinedServerMixin {
     }
 
     @Inject(
-        at = @At("HEAD"),
-        method = "hasJoinedServer",
-        remap = false,
-        cancellable = true
+            at = @At("HEAD"),
+            method = "hasJoinedServer",
+            remap = false,
+            cancellable = true
     )
     public void hasJoinedServer(String profileName, String serverId, InetAddress address, CallbackInfoReturnable<ProfileResult> cir) throws AuthenticationUnavailableException {
         Map<String, Object> arguments = new HashMap<>();
@@ -71,9 +75,15 @@ public abstract class HasJoinedServerMixin {
             LOGGER.debug("Trying to authenticate player via " + provider.getName());
             LOGGER.debug("Using " + provider.getCheckUrl());
 
-            URL url = HttpAuthenticationService.concatenateURL(HttpAuthenticationService.constantURL(provider.getCheckUrl()), HttpAuthenticationService.buildQuery(arguments));
+            String queryString = arguments.entrySet().stream()
+                    .map(e -> e.getKey() + "=" + URLEncoder.encode(String.valueOf(e.getValue()), StandardCharsets.UTF_8))
+                    .collect(Collectors.joining("&"));
+
+            String baseUrl = provider.getCheckUrl();
+            String fullUrl = baseUrl + (baseUrl.contains("?") ? "&" : "?") + queryString;
 
             try {
+                URL url = new URL(fullUrl);
                 HasJoinedMinecraftServerResponse response = client.get(url, HasJoinedMinecraftServerResponse.class);
                 LOGGER.debug(provider.getName() + " session response: " + (response == null ? "null" : AlternativeAuthUtils.GSON.toJson(response)));
 
@@ -91,9 +101,11 @@ public abstract class HasJoinedServerMixin {
 
                 PropertyMap properties = resolveProperties(provider, profileName, response);
 
+                properties = SkinResigner.resignIfNeeded(CONFIG, properties, profileName);
+
                 GameProfile profile = properties != null
-                    ? new GameProfile(response.id(), profileName, properties)
-                    : new GameProfile(response.id(), profileName);
+                        ? new GameProfile(response.id(), profileName, properties)
+                        : new GameProfile(response.id(), profileName);
 
                 final Set<ProfileActionType> profileActions = extractProfileActionTypes(response.profileActions());
 
@@ -102,6 +114,9 @@ public abstract class HasJoinedServerMixin {
 
                 cir.setReturnValue(new ProfileResult(profile, profileActions));
                 break;
+            } catch (MalformedURLException e) {
+                LOGGER.debug("Malformed check URL for " + provider.getName() + ": " + e.getMessage());
+                cir.setReturnValue(null);
             } catch (MinecraftClientException exception) {
                 LOGGER.debug(provider.getName() + " threw during session check: " + exception.getMessage());
 
@@ -135,12 +150,13 @@ public abstract class HasJoinedServerMixin {
         }
 
         try {
-            NameAndId profile = client.get(
-                HttpAuthenticationService.constantURL(profileUrl + AlternativeAuthUtils.normalizeName(profileName)),
-                NameAndId.class
-            );
+            URL url = new URL(profileUrl + AlternativeAuthUtils.normalizeName(profileName));
+            NameAndId profile = client.get(url, NameAndId.class);
 
             return profile != null;
+        } catch (MalformedURLException e) {
+            LOGGER.debug("Malformed profile URL for " + provider.getName() + ": " + e.getMessage());
+            return false;
         } catch (MinecraftClientException e) {
             LOGGER.debug("Could not verify player existence on " + provider.getName() + ": " + e.getMessage());
             return false;
@@ -151,31 +167,34 @@ public abstract class HasJoinedServerMixin {
     private PropertyMap resolveProperties(AlternativeAuthProvider provider, String profileName, HasJoinedMinecraftServerResponse response) {
         PropertyMap fallback = response.properties();
 
-        if (fallback == null) {
-            LOGGER.debug("Session response for " + profileName + " has no properties");
-            return null;
-        }
-
         String propertyUrlTemplate = provider.getPropertyUrl();
 
         if (propertyUrlTemplate == null) {
+            if (fallback == null) {
+                LOGGER.debug("Session response for " + profileName + " has no properties");
+                return null;
+            }
             LOGGER.debug("Provider " + provider.getName() + " has no propertyUrl, using session response properties");
             return fallback;
         }
 
         String resolvedUrl = MessageFormat.format(propertyUrlTemplate, profileName, response.id());
+        if (resolvedUrl.contains("/session/minecraft/profile/") && !resolvedUrl.contains("unsigned=")) {
+            resolvedUrl += (resolvedUrl.contains("?") ? "&" : "?") + "unsigned=false";
+        }
         LOGGER.debug(MessageFormat.format("Found {0} property URL, fetching {1}", provider.getName(), resolvedUrl));
 
-        URL propertyUrl = HttpAuthenticationService.concatenateURL(
-            HttpAuthenticationService.constantURL(resolvedUrl), null
-        );
+        try {
+            URL propertyUrl = new URL(resolvedUrl);
+            HasJoinedMinecraftServerResponse propertyResponse = client.get(propertyUrl, HasJoinedMinecraftServerResponse.class);
 
-        HasJoinedMinecraftServerResponse propertyResponse = client.get(propertyUrl, HasJoinedMinecraftServerResponse.class);
+            LOGGER.debug("Property response: " + (propertyResponse == null ? "null" : AlternativeAuthUtils.GSON.toJson(propertyResponse)));
 
-        LOGGER.debug("Property response: " + (propertyResponse == null ? "null" : AlternativeAuthUtils.GSON.toJson(propertyResponse)));
-
-        if (propertyResponse != null) {
-            return propertyResponse.properties();
+            if (propertyResponse != null && propertyResponse.properties() != null) {
+                return propertyResponse.properties();
+            }
+        } catch (MalformedURLException e) {
+            LOGGER.debug("Malformed property URL for " + provider.getName() + ": " + e.getMessage());
         }
 
         return fallback;

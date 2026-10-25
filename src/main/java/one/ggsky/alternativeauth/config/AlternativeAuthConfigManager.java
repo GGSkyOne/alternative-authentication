@@ -74,6 +74,14 @@ public class AlternativeAuthConfigManager {
             obj.addProperty("preventFallbackIfPlayerExists", false);
         }
 
+        if (!obj.has("mineSkin")) {
+            JsonObject ms = new JsonObject();
+            ms.addProperty("enabled", false);
+            ms.addProperty("apiKey", "");
+            ms.addProperty("proxyUrlUpload", false);
+            obj.add("mineSkin", ms);
+        }
+
         if (!obj.has("providers")) return;
 
         for (JsonElement el : obj.getAsJsonArray("providers")) {
