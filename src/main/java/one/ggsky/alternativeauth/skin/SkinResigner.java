@@ -33,12 +33,17 @@ public class SkinResigner {
         }
 
         SkinUtils.SkinData skinData = SkinUtils.getSkinUrl(skinProperty);
+        String capeUrl = SkinUtils.getCapeUrl(skinProperty);
+
         if (skinData == null || skinData.url() == null) {
             return properties;
         }
 
-        if (SkinUtils.isMojangTexture(skinData.url(), skinProperty)) {
-            LOGGER.debug("Skin for " + profileName + " is already hosted on Mojang and signed");
+        boolean skinIsMojang = SkinUtils.isMojangTexture(skinData.url(), skinProperty);
+        boolean capeIsMojang = capeUrl == null || SkinUtils.isMojangTexture(capeUrl, skinProperty);
+
+        if (skinIsMojang && capeIsMojang) {
+            LOGGER.debug("Textures for " + profileName + " are already hosted on Mojang and signed");
             return properties;
         }
 
@@ -49,17 +54,24 @@ public class SkinResigner {
             return replaceTexturesProperty(properties, cached);
         }
 
-        LOGGER.info("Resigning external skin for " + profileName + " via MineSkin (" + skinData.url() + ")");
+        String capeUuid = null;
+        if (capeUrl != null) {
+            capeUuid = MineskinService.getInstance().resolveCapeUuid(config.getMineSkin(), capeUrl);
+        }
+
+        String capeLog = capeUuid != null ? " with cape " + capeUuid : "";
+        LOGGER.info("Resigning external textures for " + profileName + " via MineSkin (" + skinData.url() + capeLog + ")");
+
         try {
-            Optional<Property> resigned = MineskinService.getInstance().signSkin(config.getMineSkin(), skinData.url(), skinData.variant());
+            Optional<Property> resigned = MineskinService.getInstance().signSkin(config.getMineSkin(), skinData.url(), skinData.variant(), capeUuid);
             if (resigned.isPresent()) {
                 Property newSkin = resigned.get();
                 SIGNATURE_CACHE.put(propertyHash, newSkin);
-                LOGGER.info("Successfully resigned skin for " + profileName + " via MineSkin");
+                LOGGER.info("Successfully resigned textures for " + profileName + " via MineSkin");
                 return replaceTexturesProperty(properties, newSkin);
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to resign skin for " + profileName + " via MineSkin: " + e.getMessage());
+            LOGGER.warn("Failed to resign textures for " + profileName + " via MineSkin: " + e.getMessage());
         }
 
         return properties;

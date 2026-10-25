@@ -50,10 +50,25 @@ public final class SkinUtils {
         return new SkinData(url, variant);
     }
 
+    public static String getCapeUrl(Property skin) {
+        if (skin == null) return null;
+        JsonObject textureJson = skinPropertyToJson(skin);
+        if (textureJson == null || !textureJson.has("textures")) return null;
+
+        JsonObject textures = textureJson.getAsJsonObject("textures");
+        if (!textures.has("CAPE")) return null;
+
+        JsonObject capeTexture = textures.getAsJsonObject("CAPE");
+        if (!capeTexture.has("url")) return null;
+
+        return capeTexture.get("url").getAsString();
+    }
+
     public static boolean isMojangTexture(String url, Property property) {
         if (property == null || property.signature() == null || property.signature().isBlank()) {
             return false;
         }
+        if (url == null) return false;
         try {
             URI uri = URI.create(url);
             String host = uri.getHost();
